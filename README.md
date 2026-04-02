@@ -48,16 +48,12 @@ make run            # opens http://localhost:5050
 
 ---
 
-## Configuration — `site.env`
-
-`site.env` is **never committed** (gitignored). Copy from the template and
-edit for your system:
 
 ```makefile
 PYTHON     = python3
 SC_SNAPS_X = ~/BIN/sc_snaps.x
 # VISUALIZER = ~/BIN/jmol           # Jmol shell script or .app bundle
-# POSCAR2XYZ = ~/BIN/poscar2xyz.py  # POSCAR → XYZ converter
+# POSCAR2XYZ = ~/BIN/poscar2xyz.py  # POSCAR → XYZ converter (is provided; if you move it to ~/BIN, provide the path)
 ```
 
 All paths set here become the default values shown in the browser on startup.
@@ -107,10 +103,11 @@ After running, the working directory contains:
 | `poscar_000` | Unshifted reference supercell (POSCAR format) |
 | `poscar_001` … `poscar_N` | Thermally displaced snapshots |
 | `poscar_j.xyz` | XYZ-format versions (created on demand by clicking "Convert & open in Jmol") |
+| `snapshots.xyz` | all the snapshots and velocities if needed 
 
 ---
 
-## Workflow
+## Workflow after you type "make run" and get the browser window
 
 1. **Set working directory** — type a path (new or existing) and optionally
    click **Load existing files** to populate the text areas from disk
