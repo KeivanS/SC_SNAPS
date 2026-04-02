@@ -27,7 +27,7 @@ phonon calculations. This GUI lets you:
 |-------------|-------|
 | Python ≥ 3.8 | |
 | [Flask](https://flask.palletsprojects.com/) | `pip install flask` |
-| [gfortran(https://gcc.gnu.org/fortran/)] | or similar fortran compiler to compile sc_snaps.f90 and create`sc_snaps.x` | The snapshot generator executable |
+| [gfortran](https://gcc.gnu.org/fortran/) | or similar fortran compiler to compile sc_snaps.f90 and create`sc_snaps.x` | The snapshot generator executable |
 | [Jmol](https://jmol.sourceforge.net/) | Structure visualizer (optional) |
 
 ```bash
