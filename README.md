@@ -132,7 +132,7 @@ After running, the working directory contains:
 ```
 sc-snaps-gui/
 ├── sc-snaps-gui.py      # Flask server + single-page browser app
-├── Makefile             # make setup / make run
+├── Makefile             # make compile / make run
 └── README.md
 ```
 
