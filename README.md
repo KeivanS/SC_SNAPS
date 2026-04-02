@@ -42,6 +42,7 @@ pip install flask
 ```bash
 git clone https://github.com/YOUR_USERNAME/sc-snaps-gui.git
 cd sc-snaps-gui
+make compile        # to compile the sc_snaps.f90 source file
 make run            # opens http://localhost:5050
 ```
 
