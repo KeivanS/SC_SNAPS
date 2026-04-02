@@ -46,10 +46,6 @@ make compile        # to compile the sc_snaps.f90 source file
 make run            # opens http://localhost:5050
 ```
 
-Or without make:
-```bash
-python3 sc-snaps-gui.py
-```
 
 ---
 
