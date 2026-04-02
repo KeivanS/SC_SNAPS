@@ -27,8 +27,7 @@ phonon calculations. This GUI lets you:
 |-------------|-------|
 | Python ≥ 3.8 | |
 | [Flask](https://flask.palletsprojects.com/) | `pip install flask` |
-| `sc_snaps.x` | The snapshot generator executable |
-| `poscar2xyz.py` | Converts POSCAR-format files to XYZ (optional) |
+| [gfortran] | or similar fortran compiler to compile sc_snaps.f90 and create`sc_snaps.x` | The snapshot generator executable |
 | [Jmol](https://jmol.sourceforge.net/) | Structure visualizer (optional) |
 
 ```bash
