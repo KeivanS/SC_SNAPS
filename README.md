@@ -44,7 +44,7 @@ cd sc-snaps-gui
 make compile        # to compile the sc_snaps.f90 source file
 ```
 
-## To run it in the browser window
+## To open the GUI in the browser window
 
 ```bash
 make run            # opens http://localhost:5050
