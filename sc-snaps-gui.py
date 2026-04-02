@@ -15,6 +15,16 @@ app = Flask(__name__)
 # ── fixed working directory (set at launch time) ──────────────────────────────
 WORKDIR = os.getcwd()
 
+
+def _request_workdir(payload=None):
+    """Return the user-selected working directory or the launch directory."""
+    payload = payload or {}
+    wd = payload.get('workdir') if isinstance(payload, dict) else None
+    if wd is None:
+        wd = request.args.get('workdir', '')
+    wd = os.path.expanduser(str(wd).strip()) if wd else WORKDIR
+    return os.path.abspath(wd)
+
 # ── defaults ─────────────────────────────────────────────────────────────────
 DEFAULT_EXEC = '~/BIN/sc_snaps.x'
 
@@ -43,11 +53,12 @@ DEFAULT_VISUALIZER = '~/bin/jmol'
 DEFAULT_CONVERTER = '~/BIN/poscar2xyz.py'
 
 
-def _load_defaults_json():
+def _load_defaults_json(workdir=None):
     """Load optional defaults.json from WORKDIR.
     Returns {} if the file is absent or invalid.
     """
-    path = os.path.join(WORKDIR, 'defaults.json')
+    workdir = workdir or WORKDIR
+    path = os.path.join(workdir, 'defaults.json')
     if not os.path.isfile(path):
         return {}
     try:
@@ -57,9 +68,9 @@ def _load_defaults_json():
         return {}
 
 
-def _effective_defaults():
+def _effective_defaults(workdir=None):
     """Built-in defaults overridden by defaults.json when present."""
-    dj = _load_defaults_json()
+    dj = _load_defaults_json(workdir)
     return {
         'execpath': dj.get('execpath', DEFAULT_EXEC),
         'visualizer': dj.get('visualizer', DEFAULT_VISUALIZER),
@@ -123,7 +134,8 @@ def _parse_supercell_inp():
 @app.route('/api/run', methods=['POST'])
 def api_run():
     d = request.json or {}
-    defaults = _effective_defaults()
+    workdir = _request_workdir(d)
+    defaults = _effective_defaults(workdir)
     execpath = os.path.expanduser(d.get('execpath', defaults['execpath']).strip())
 
     if not os.path.isfile(execpath):
@@ -131,15 +143,15 @@ def api_run():
     if not os.access(execpath, os.X_OK):
         return jsonify(error=f'Executable not executable (check permissions): {execpath}'), 400
 
-    Path(os.path.join(WORKDIR, 'cell.inp')).write_text(d.get('cell', defaults['cell']))
-    Path(os.path.join(WORKDIR, 'snaps.inp')).write_text(d.get('snaps', defaults['snaps']))
-    Path(os.path.join(WORKDIR, 'supercell.inp')).write_text(d.get('supercell', defaults['supercell']))
+    Path(os.path.join(workdir, 'cell.inp')).write_text(d.get('cell', defaults['cell']))
+    Path(os.path.join(workdir, 'snaps.inp')).write_text(d.get('snaps', defaults['snaps']))
+    Path(os.path.join(workdir, 'supercell.inp')).write_text(d.get('supercell', defaults['supercell']))
 
     job_id = _next_job_id()
     with _jobs_lock:
         _jobs[job_id] = queue.Queue()
 
-    t = threading.Thread(target=_run_job, args=(job_id, [execpath], WORKDIR), daemon=True)
+    t = threading.Thread(target=_run_job, args=(job_id, [execpath], workdir), daemon=True)
     t.start()
     return jsonify(job_id=job_id)
 
@@ -166,15 +178,18 @@ def api_stream(job_id):
 
 @app.route('/api/load_inputs', methods=['POST'])
 def api_load_inputs():
-    defaults = _effective_defaults()
+    d = request.json or {}
+    workdir = _request_workdir(d)
+    defaults = _effective_defaults(workdir)
     result = {}
     for fname, key in [('cell.inp','cell'), ('snaps.inp','snaps'), ('supercell.inp','supercell')]:
-        p = os.path.join(WORKDIR, fname)
+        p = os.path.join(workdir, fname)
         result[key] = Path(p).read_text(errors='replace').strip() if os.path.isfile(p) else defaults[key]
     result['execpath'] = defaults['execpath']
     result['visualizer'] = defaults['visualizer']
     result['converter'] = defaults['converter']
-    result['defaults_source'] = 'defaults.json' if os.path.isfile(os.path.join(WORKDIR, 'defaults.json')) else 'built-in'
+    result['defaults_source'] = 'defaults.json' if os.path.isfile(os.path.join(workdir, 'defaults.json')) else 'built-in'
+    result['workdir'] = workdir
     return jsonify(result)
 
 
@@ -182,19 +197,22 @@ def api_load_inputs():
 def api_save_inputs():
     """Write the three input files to disk without running sc_snaps.x."""
     d = request.json or {}
-    defaults = _effective_defaults()
-    Path(os.path.join(WORKDIR, 'cell.inp')).write_text(d.get('cell', defaults['cell']))
-    Path(os.path.join(WORKDIR, 'snaps.inp')).write_text(d.get('snaps', defaults['snaps']))
-    Path(os.path.join(WORKDIR, 'supercell.inp')).write_text(d.get('supercell', defaults['supercell']))
+    workdir = _request_workdir(d)
+    defaults = _effective_defaults(workdir)
+    Path(os.path.join(workdir, 'cell.inp')).write_text(d.get('cell', defaults['cell']))
+    Path(os.path.join(workdir, 'snaps.inp')).write_text(d.get('snaps', defaults['snaps']))
+    Path(os.path.join(workdir, 'supercell.inp')).write_text(d.get('supercell', defaults['supercell']))
     return jsonify(ok=True)
 
 
 @app.route('/api/files', methods=['POST'])
 def api_files():
-    poscars = sorted(glob.glob(os.path.join(WORKDIR, 'poscar_*')))
+    d = request.json or {}
+    workdir = _request_workdir(d)
+    poscars = sorted(glob.glob(os.path.join(workdir, 'poscar_*')))
     entries = [{'name': os.path.basename(p), 'type': 'poscar'} for p in poscars]
 
-    snapshots_path = os.path.join(WORKDIR, 'snapshots.xyz')
+    snapshots_path = os.path.join(workdir, 'snapshots.xyz')
     if os.path.isfile(snapshots_path):
         entries.append({'name': 'snapshots.xyz', 'type': 'xyz'})
 
@@ -232,11 +250,12 @@ def _launch_jmol(visualizer: str, filepath: str, jmolhome: str = ''):
 def api_open_visual():
     """Convert POSCAR → XYZ if needed, then open in Jmol."""
     d          = request.json or {}
+    workdir    = _request_workdir(d)
     visualizer = os.path.expanduser(d.get('visualizer', '').strip())
     converter  = os.path.expanduser(d.get('converter',  '').strip())
     jmolhome   = os.path.expanduser(d.get('jmolhome',   '').strip())
     fname      = os.path.basename(d.get('filename', ''))
-    filepath   = os.path.join(WORKDIR, fname)
+    filepath   = os.path.join(workdir, fname)
 
     if not visualizer:
         return jsonify(error='No visualizer path set.'), 400
@@ -255,7 +274,7 @@ def api_open_visual():
             import subprocess
             result = subprocess.run(
                 [sys.executable, converter, fname],
-                cwd=WORKDIR, capture_output=True, text=True
+                cwd=workdir, capture_output=True, text=True
             )
             if result.returncode != 0:
                 msg = result.stderr.strip() or result.stdout.strip() or 'conversion failed'
@@ -272,8 +291,9 @@ def api_open_visual():
 @app.route('/api/read_file', methods=['POST'])
 def api_read_file():
     d     = request.json or {}
+    workdir = _request_workdir(d)
     fname = os.path.basename(d.get('filename', ''))
-    path  = os.path.join(WORKDIR, fname)
+    path  = os.path.join(workdir, fname)
     if not os.path.isfile(path):
         return jsonify(error='File not found'), 404
     return jsonify(content=Path(path).read_text(errors='replace'))
@@ -736,9 +756,10 @@ def _make_velocity_histogram_png(poscar_path, xyz_path):
 @app.route('/api/plot_histogram')
 def api_plot_histogram():
     try:
+        workdir = _request_workdir()
         png = _make_displacement_histogram_png(
-            os.path.join(WORKDIR, 'poscar_000'),
-            os.path.join(WORKDIR, 'snapshots.xyz'))
+            os.path.join(workdir, 'poscar_000'),
+            os.path.join(workdir, 'snapshots.xyz'))
         return Response(png, mimetype='image/png')
     except FileNotFoundError as exc:
         return jsonify(error=f'Missing required file: {exc.filename}'), 404
@@ -751,9 +772,10 @@ def api_plot_histogram():
 @app.route('/api/plot_disp_component_histogram')
 def api_plot_disp_component_histogram():
     try:
+        workdir = _request_workdir()
         png = _make_displacement_component_histogram_png(
-            os.path.join(WORKDIR, 'poscar_000'),
-            os.path.join(WORKDIR, 'snapshots.xyz'))
+            os.path.join(workdir, 'poscar_000'),
+            os.path.join(workdir, 'snapshots.xyz'))
         return Response(png, mimetype='image/png')
     except FileNotFoundError as exc:
         return jsonify(error=f'Missing required file: {exc.filename}'), 404
@@ -766,9 +788,10 @@ def api_plot_disp_component_histogram():
 @app.route('/api/plot_vel_histogram')
 def api_plot_vel_histogram():
     try:
+        workdir = _request_workdir()
         png = _make_velocity_histogram_png(
-            os.path.join(WORKDIR, 'poscar_000'),
-            os.path.join(WORKDIR, 'snapshots.xyz'))
+            os.path.join(workdir, 'poscar_000'),
+            os.path.join(workdir, 'snapshots.xyz'))
         return Response(png, mimetype='image/png')
     except FileNotFoundError as exc:
         return jsonify(error=f'Missing required file: {exc.filename}'), 404
@@ -788,7 +811,8 @@ def api_plot_freqs():
         import matplotlib.pyplot as plt
         from io import BytesIO
 
-        freqs_path = os.path.join(WORKDIR, 'freqs.dat')
+        workdir = _request_workdir()
+        freqs_path = os.path.join(workdir, 'freqs.dat')
         if not os.path.isfile(freqs_path):
             return jsonify(error='freqs.dat not found — run sc_snaps.x first'), 404
 
@@ -883,7 +907,8 @@ def api_debug_dat():
 @app.route('/api/read_log')
 def api_read_log():
     """Return contents of log.dat."""
-    path = os.path.join(WORKDIR, 'log.dat')
+    workdir = _request_workdir()
+    path = os.path.join(workdir, 'log.dat')
     if not os.path.isfile(path):
         return jsonify(error='log.dat not found'), 404
     return jsonify(content=Path(path).read_text(errors='replace'))
@@ -1016,8 +1041,8 @@ textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(
     <!-- Working directory — read-only, fixed at launch -->
     <div class="f" style="margin-bottom:16px;">
       <label>Working Directory — files are read and written here (set at launch time)</label>
-      <div class="workdir-display" id="workdir-label">__WORKDIR__</div>
-      <div class="hint">Invoke <code>sc-snaps-gui.py</code> from your project directory to change this.</div>
+      <input type="text" id="workdir" value="__WORKDIR__">
+      <div class="hint">Starts from the directory where this script was launched. Edit it if you want the GUI to use a different working directory.</div>
     </div>
 
     <hr class="sep">
@@ -1072,7 +1097,7 @@ Mg O
         Line 3: lattice parameter scale (Å)<br>
         Line 4: number of atom types<br>
         Line 5: number of atoms of each type<br>
-        Line 6: atomic masses; charges<br>
+        Line 6: atomic masses; charges <br>
         Line 7: element names<br>
         Lines 8+: reduced coordinates (conventional lattice)
       </div>
@@ -1085,7 +1110,7 @@ Mg O
 10     #  of snaps needed </textarea>
       <div class="hint" style="margin-top:8px;">
         Line 1: average desired phonon frequency (cm⁻¹)<br>
-        Line 2: Temperature (K) to adjust displacements magnitudes<br>
+        Line 2: temperature (K) to adjust displacements magnitudes<br>
         Line 3: number of desired snapshots <br>
         <br>
         Output: <code>poscar_000</code> (unshifted) through <code>poscar_N</code>
@@ -1210,6 +1235,7 @@ Mg O
 // ── helpers ─────────────────────────────────────────────────────────────────
 const v   = id => document.getElementById(id).value;
 const el  = id => document.getElementById(id);
+const currentWorkdir = () => (el('workdir') ? v('workdir').trim() : '');
 
 function alertTop(msg, type){
   el('alert-top').innerHTML = msg
@@ -1261,6 +1287,7 @@ async function saveInputs(){
   btn.disabled = true;
   ss.textContent = 'Saving…';
   const r = await post('/api/save_inputs', {
+    workdir: currentWorkdir(),
     cell: v('cell'), snaps: v('snaps'), supercell: v('supercell')
   });
   const d = await r.json();
@@ -1279,9 +1306,13 @@ async function loadInputs(){
     return;
 
   alertTop('', '');
-  const r   = await post('/api/load_inputs', {});
+  const r   = await post('/api/load_inputs', {workdir: currentWorkdir()});
   const d   = await r.json();
   let loaded = 0;
+  if(d.execpath)   { el('execpath').value = d.execpath; }
+  if(d.visualizer) { el('visualizer').value = d.visualizer; }
+  if(d.converter)  { el('converter').value = d.converter; }
+  if(d.workdir)    { el('workdir').value = d.workdir; }
   if(d.cell)      { el('cell').value = d.cell;           loaded++; }
   if(d.snaps)     { el('snaps').value = d.snaps;         loaded++; }
   if(d.supercell) { el('supercell').value = d.supercell; loaded++; }
@@ -1289,7 +1320,7 @@ async function loadInputs(){
   if(loaded === 0)
     alertTop('No existing input files found — showing defaults.', 'ok');
   else
-    alertTop(`Loaded ${loaded}/3 input file(s).`, 'ok');
+    alertTop(`Loaded ${loaded}/3 input file(s) from ${currentWorkdir() || d.workdir}.`, 'ok');
   await refreshFiles();
 }
 
@@ -1297,7 +1328,7 @@ async function loadInputs(){
 let _activeFile = null;
 
 async function refreshFiles(){
-  const r = await post('/api/files', {});
+  const r = await post('/api/files', {workdir: currentWorkdir()});
   const d = await r.json();
   renderFileChips(d.files || []);
 }
@@ -1328,7 +1359,7 @@ async function viewFile(fname){
   document.querySelectorAll('.chip').forEach(c =>
     c.classList.toggle('active', c.textContent.trim() === fname));
 
-  const r = await post('/api/read_file', {filename: fname});
+  const r = await post('/api/read_file', {workdir: currentWorkdir(), filename: fname});
   const d = await r.json();
   const viewer = el('file-viewer');
   viewer.textContent   = d.error ? `Error: ${d.error}` : d.content;
@@ -1356,7 +1387,7 @@ async function openInViewer(){
 
   const jmolhomeEl = document.getElementById('jmolhome');
   const jmolhome = jmolhomeEl ? jmolhomeEl.value.trim() : '';
-  const r = await post('/api/open_visual', {filename: _activeFile, visualizer, converter, jmolhome});
+  const r = await post('/api/open_visual', {workdir: currentWorkdir(), filename: _activeFile, visualizer, converter, jmolhome});
   const d = await r.json();
   btn.disabled = false;
   btn.textContent = _activeFile.endsWith('.xyz') ? '👁 Open in Jmol' : '👁 Convert & open in Jmol';
@@ -1374,13 +1405,15 @@ async function openInViewer(){
 let _plotsLoaded = false;
 
 function _imgTag(src){
-  return `<img src="${src}?t=${Date.now()}" alt="plot" loading="lazy">`;
+  const wd = encodeURIComponent(currentWorkdir());
+  return `<img src="${src}?workdir=${wd}&t=${Date.now()}" alt="plot" loading="lazy">`;
 }
 
 async function _loadPlot(apiUrl, wrapId){
   el(wrapId).innerHTML = '<div class="plot-missing">Loading…</div>';
   try {
-    const r = await fetch(`${apiUrl}?t=${Date.now()}`);
+    const wd = encodeURIComponent(currentWorkdir());
+    const r = await fetch(`${apiUrl}?workdir=${wd}&t=${Date.now()}`);
     if(r.ok && (r.headers.get('content-type')||'').includes('image/png')){
       el(wrapId).innerHTML = _imgTag(apiUrl);
     } else {
@@ -1399,7 +1432,8 @@ async function refreshPlots(){
     _loadPlot('/api/plot_vel_histogram',            'vel-wrap'),
     _loadPlot('/api/plot_freqs',                    'freqs-wrap'),
     (async () => {
-      const r = await fetch('/api/read_log');
+      const wd = encodeURIComponent(currentWorkdir());
+      const r = await fetch(`/api/read_log?workdir=${wd}`);
       const d = await r.json();
       el('log-dat').textContent = d.error ? d.error : d.content;
     })(),
@@ -1431,6 +1465,7 @@ async function runSnaps(){
   _markClean();
 
   const r = await post('/api/run', {
+    workdir:   currentWorkdir(),
     execpath:  v('execpath'),
     cell:      v('cell'),
     snaps:     v('snaps'),
@@ -1496,8 +1531,9 @@ async function runSnaps(){
 // ── init ─────────────────────────────────────────────────────────────────────
 (async function init(){
   // Auto-load existing input files or defaults.json (silently, no alert)
-  const r = await post('/api/load_inputs', {});
+  const r = await post('/api/load_inputs', {workdir: currentWorkdir()});
   const d = await r.json();
+  if(d.workdir)    el('workdir').value    = d.workdir;
   if(d.execpath)   el('execpath').value   = d.execpath;
   if(d.visualizer) el('visualizer').value = d.visualizer;
   if(d.converter)  el('converter').value  = d.converter;

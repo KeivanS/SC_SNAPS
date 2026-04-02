@@ -40,14 +40,15 @@ pip install flask
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/sc-snaps-gui.git
-cd SC_SNAPS-main
+cd sc-snaps-gui
 make compile        # to compile the sc_snaps.f90 source file
 ```
 
 ## To open the GUI in the browser window
 
 ```bash
-make run            # opens http://localhost:5050
+make run                        # opens the GUI in the browser  http://localhost:5050
+lsof -ti :5050 | xargs kill -9  # to kill the GUI browser window in case you want to rerun it
 ```
 
 
