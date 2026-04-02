@@ -11,12 +11,11 @@ generator. Runs locally as a Flask web app — no internet connection required.
 phonon calculations. This GUI lets you:
 
 - Edit the three input files (`cell.inp`, `snaps.inp`, `supercell.inp`)
-  directly in the browser with format hints
+  directly in the browser with format hints (a default will first be uploded)
 - Save edits to disk explicitly before running
 - Run `sc_snaps.x` and watch the live output stream
-- Browse generated `poscar_*` snapshots and any `.xyz` files
-- Convert any snapshot to `.xyz` via `poscar2xyz.py` and open it
-  immediately in Jmol — all with one click
+- Browse generated `poscar_*` files and the snapshots.xyz file
+- Click on any generated poscar or snapshots.xyz to visualize the generated structures using Jmol — all with one click
 - Vesta or similar visyualization softwares are also possible; 
   just replace the jmol path in the configuration section
 
