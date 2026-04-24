@@ -31,8 +31,8 @@ DEFAULT_EXEC = '~/BIN/sc_snaps.x'
 DEFAULT_CELL = """\
 1 1 1   90 90 90
  0 0.5 0.5, 0.5 0 0.5, 0.5 0.5 0
-4.247
-2 9  # of atoms types, 0 for conventional reduced units
+4.247  9  # scale, 0 for conventional reduced units
+2   # of atoms types
 1 1
 24.31  16.00
 Mg O
