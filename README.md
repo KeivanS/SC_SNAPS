@@ -48,11 +48,13 @@ make compile        # to compile the sc_snaps.f90 source file
 
 ```bash
 make run                        # opens the GUI in the browser  http://localhost:5050
-lsof -ti :5050 | xargs kill -9  # to kill the GUI browser window in case you want to rerun it
 ```
 
+## If you want to reopen the GUI in the browser window, first kill the existing one using
 
----
+```bash
+lsof -ti :5050 | xargs kill -9  # to kill the GUI browser window in case you want to rerun it
+```
 
 
 ```makefile
@@ -73,12 +75,12 @@ They can be overridden at any time in the browser without restarting.
 ```
 1 1 1   90 90 90          # conventional cell: a b c  α β γ
  0 0.5 0.5, 0.5 0 0.5, 0.5 0.5 0   # primitive vectors (in conventional units)
-4.247                     # lattice parameter scale (Å)
+4.247  9                  # lattice parameter scale (Å), 0 for conventional cell units , otherwise coordinates are read in primitive cell units
 2                         # number of atom types
 1 1                       # number of atoms of each type
 24.31  16.00              # atomic masses
 Mg O                      # element names
-  0 0 0                   # reduced coordinates (conventional lattice)
+  0 0 0                   # reduced coordinates (conventional lattice if 0 on line 3, otherwise primitive)
   0.5 0.5 0.5
 ```
 
@@ -86,7 +88,7 @@ Mg O                      # element names
 ```
 400    # average phonon frequency (cm⁻¹)
 300    # temperature (K)
-51 1   # number of snapshots  supercell_type (default=1)
+51     # number of snapshots  supercell_type 
 ```
 
 ### `supercell.inp` — supercell dimensions
