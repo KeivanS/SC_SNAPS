@@ -32,8 +32,8 @@ DEFAULT_CELL = """\
 1 1 1   90 90 90
  0 0.5 0.5, 0.5 0 0.5, 0.5 0.5 0
 4.247  9  # scale, 0 for conventional reduced units
-2   # of atoms types
-1 1
+2         # of atoms types
+1 1       # of atoms of each type
 24.31  16.00
 Mg O
   0 0 0
