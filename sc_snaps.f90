@@ -4,12 +4,13 @@ module cells
 real(8) r01(3),r02(3),r03(3),r1(3),r2(3),r3(3),rsc1(3),rsc2(3),rsc3(3)
 real(8) g01(3),g02(3),g03(3),gsc1(3),gsc2(3),gsc3(3)
 real(8) prim_to_cart(3,3),cart_to_prim(3,3),prim_to_cart0(3,3),cart_to_prim0(3,3)
-real(8), allocatable:: pos_conv_red(:,:),pos_prim(:,:),pos_sc(:,:)
+real(8), allocatable:: pos_red(:,:),pos_prim(:,:),pos_sc(:,:)
 real(8), allocatable:: mass(:),mass_sc(:),charge(:),charge_sc(:)
 integer, allocatable:: ipos(:,:)
 real(8) vol0,vol_sc
 character(2), allocatable :: atname(:),atname_sc(:)
 integer natom0(10),ntype,natoms0,natom_sc,cell,nsnap,nrand,n_sc,iaux
+integer convcoord
 
 end module cells
 !========================
@@ -19,7 +20,7 @@ end module ios
 !========================
 module pairpot
 
-    real(8) a4,d4,req,alfa
+    real(8) a4,d4,req,alfa,rij0
     contains
 
      function pot(r) result(V)
@@ -29,9 +30,10 @@ module pairpot
 
 ! morse potential V(r)=D(1-exp(-a(r-re)))^2
      d4=10 ; a4=req/1.0; !req=2.27 !2.251666
-     V=d4*(1-exp(-a4*(r-req)))**2
+!    V=d4*(1-exp(-a4*(r-req)))**2
 ! 1/r^4 potential produces eesonable vibrational modes and frequencies than morse
-     V=1/r**4
+!    V=1/r**4
+     V=50*d4/rij0**4*(r-rij0)*(r-rij0)
 
      end function pot
     !==================================
@@ -88,7 +90,8 @@ character(3) csn
 
    allocate(freq_thz(nmodes),normal_modes(nmodes,nmodes))
    call get_normal_modes(natom_sc,pos_sc,mass_sc,normal_modes,freq_thz,wavgcm)
-   nrand = nmodes*nmodes  ! don't exclude acoustic (translational) modes
+!  nrand = nmodes*nmodes  ! don't exclude acoustic (translational) modes
+   nrand = nmodes*nsnap  ! don't exclude acoustic (translational) modes
 
 ! if snapshots are displacements along normal modes
    allocate(ksi(nrand),phi(nrand),seed(nrand),disp(3,natom_sc),vel(3,natom_sc)) !random numbers for each mode
@@ -126,7 +129,7 @@ character(3) csn
    write(70+s,3) rsc1 
    write(70+s,3) rsc2 
    write(70+s,3) rsc3 
-   write(70+s,'(22(a2,1x))') (atname(j),j=1,ntype) 
+   write(70+s,'(*(a2,1x))') (atname(j),j=1,ntype) 
    write(70+s,*) (n_sc*natom0(j),j=1,ntype) !natom_sc
    write(70+s,'(a)')'C '
    do i=1,natom_sc
@@ -143,7 +146,7 @@ character(3) csn
            write(70+s,3) rsc1 
            write(70+s,3) rsc2 
            write(70+s,3) rsc3 
-           write(70+s,'(22(a2,1x))') (atname(j),j=1,ntype) 
+           write(70+s,'(*(a2,1x))') (atname(j),j=1,ntype) 
            write(70+s,*) (n_sc*natom0(j),j=1,ntype) !natom_sc
            write(70+s,'(a)')'C '
 
@@ -168,7 +171,7 @@ character(3) csn
 !          write(60,*)'# snap ',s
            do i=1,natom_sc  ! atoms are ordered per type 
               write(usnap,4) atname_sc(i),pos_sc(:,i)+disp(:,i),charge_sc(i),vel(:,i)
-              write(70+s ,4) ' ' ,pos_sc(:,i)+disp(:,i),vel(:,i)
+              write(70+s ,5) ' '         ,pos_sc(:,i)+disp(:,i),vel(:,i)
            enddo
            close(70+s)
 
@@ -181,6 +184,7 @@ character(3) csn
 
 3 format(9(1x,f15.8))
 4 format(a,2x,3(1x,f14.7),3x,f8.4,2x,3(1x,f11.5))
+5 format(a,2x,3(1x,f14.7),3x,3(1x,f11.5))
 
 
 end program generate_snapshots
@@ -198,7 +202,7 @@ pi=4d0*datan(1d0)
 open(10,file='cell.inp',status='old')
 read(10,*)latp !=a,b,c,al,be,ga
 read(10,*) n1,n2,n3
-read(10,*) scal
+read(10,*) scal,convcoord
 
  latp(1:3) = latp(1:3)*scal   ! convert angles from degree to radian
  latp(4:6)=latp(4:6)*pi/180
@@ -252,14 +256,18 @@ do j=1,ntype
    natoms0=natoms0+natom0(j)
 enddo
 write(ulog,*)' # of atom types read      =',ntype
+write(ulog,*)' names of atom types       =',atname
 write(ulog,*)' Total # of atoms in the primitive cell=',natoms0
+write(*,*)' Total # of atoms in the primitive cell=',natoms0
 
-allocate(pos_conv_red(3,natoms0),pos_prim(3,natoms0),mass(ntype),charge(ntype))
+allocate(pos_red(3,natoms0),pos_prim(3,natoms0),mass(natoms0),charge(natoms0))
 k=0
 do j=1,ntype
    do i=1,natom0(j)
       k=k+1
-      read(10,*) pos_conv_red(:,k)
+!     read(10,*) pos_conv_red(:,k)
+      read(10,*) pos_red(:,k)
+      write(*,6)j,i,k, pos_red(:,k)
       mass(k)=ms(j)
       charge(k)=ch(j)
    enddo
@@ -268,7 +276,12 @@ enddo
 ! this pos is in units of conventional vectors; convert to cartesian
 write(ulog,*)' Cartesian coordinates of the primitive atoms, mass and charge '
 do k=1,natoms0
-   pos_prim(:,k)=pos_conv_red(1,k)*r1+pos_conv_red(2,k)*r2+pos_conv_red(3,k)*r3
+!  pos_prim(:,k)=pos_conv_red(1,k)*r1+pos_conv_red(2,k)*r2+pos_conv_red(3,k)*r3
+    if(convcoord.eq.0) then ! reduced coordinates are in conventional units
+       pos_prim(:,k)=pos_red(1,k)*r1+pos_red(2,k)*r2+pos_red(3,k)*r3
+    else ! reduced coordinates are in primitive units
+       pos_prim(:,k)=pos_red(1,k)*r01+pos_red(2,k)*r02+pos_red(3,k)*r03
+    endif
    write(ulog,3)pos_prim(:,k),mass(k),charge(k)
 enddo
 !req=1d9
@@ -281,6 +294,7 @@ enddo
 
 3 format(9(1x,g14.8))
 4 format(a,2x,3(1x,f14.8))
+6 format(3i4,9(1x,g14.8))
 
 close(10)
 
@@ -305,9 +319,16 @@ close(10)
 ! rsc1=n1(1)*r01+n1(2)*r02+n1(3)*r03
 ! rsc2=n2(1)*r01+n2(2)*r02+n2(3)*r03
 ! rsc3=n3(1)*r01+n3(2)*r02+n3(3)*r03
- rsc1=n1(1)*r1+n1(2)*r2+n1(3)*r3
- rsc2=n2(1)*r1+n2(2)*r2+n2(3)*r3
- rsc3=n3(1)*r1+n3(2)*r2+n3(3)*r3
+ 
+ if(convcoord.eq.0) then ! reduced coordinates are in conventional units
+   rsc1=n1(1)*r1+n1(2)*r2+n1(3)*r3
+   rsc2=n2(1)*r1+n2(2)*r2+n2(3)*r3
+   rsc3=n3(1)*r1+n3(2)*r2+n3(3)*r3
+ else
+   rsc1=n1(1)*r01+n1(2)*r02+n1(3)*r03
+   rsc2=n2(1)*r01+n2(2)*r02+n2(3)*r03
+   rsc3=n3(1)*r01+n3(2)*r02+n3(3)*r03
+ endif
 
  prim_to_cart(:,1) = rsc1
  prim_to_cart(:,2) = rsc2
@@ -350,18 +371,11 @@ write(ulog,4) 'gsc1=',gsc1
 write(ulog,4) 'gsc2=',gsc2
 write(ulog,4) 'gsc3=',gsc3
 
-! call cross_product(rsc2,rsc3,b1)
-! call cross_product(rsc3,rsc1,b2)
-! call cross_product(rsc1,rsc2,b3)
-! b1=b1/vol_sc
-! b2=b2/vol_sc
-! b3=b3/vol_sc
-
  r_sc = vol_sc/vol0
  write(ulog,*) 'Super cell to primitive volume ratio=',r_sc
  n_sc=nint(r_sc)
  natom_sc=n_sc*natoms0
- write(ulog,*) 'n_sc, natom_sc=',n_sc,natom_sc
+ write(ulog,*) 'sc to prim ratio, natom_sc=',n_sc,natom_sc
  allocate(pos_sc(3,natom_sc),mass_sc(natom_sc),charge_sc(natom_sc),atname_sc(natom_sc),ipos(natoms0,n_sc))
 ! open(22,file='SC.xyz',status='unknown')
 ! write(22,*) natom_sc
@@ -371,12 +385,12 @@ write(ulog,4) 'gsc3=',gsc3
 
 eps=1d-5
 cnt=0  ! counts the atoms in the supercell
-i =0   ! counts the atoms in the primitive cell
+k =0   ! counts the atoms in the primitive cell
 do j=1,ntype
    do i0=1,natom0(j)
-      i=i+1
+      k=k+1
 
-k=0 ! counts the primitive cells
+i=0 ! counts the primitive cells
 do l=0,mxshl
 do i1=-l,l
 do i2=-l,l
@@ -384,7 +398,7 @@ do i3=-l,l
 ! walk only on the facets of the cube of length 2n+1
    if(iabs(i1).ne.l.and.iabs(i2).ne.l.and.iabs(i3).ne.l)cycle
 
-   rr=i1*r01+i2*r02+i3*r03 + pos_prim(:,i)
+   rr=i1*r01+i2*r02+i3*r03 + pos_prim(:,k)
 !   call bring_to_cell(cart_to_prim,prim_to_cart,rr,r23)
 ! check to see if rr is inside the supercell
    x=dot_product(rr,gsc1)
@@ -394,28 +408,28 @@ do i3=-l,l
    z=dot_product(rr,gsc3)
    if (z.lt.-eps .or. z.ge.1-eps) cycle
 
-   k=k+1  ! vector rr is in the supercell
+   i=i+1  ! vector rr is in the supercell
    cnt=cnt+1
-   ipos(i,k)=cnt
+   ipos(k,i)=cnt
    pos_sc(:,cnt)=rr(:)
-   mass_sc(cnt)=mass(i)
-   charge_sc(cnt)=charge(i)
-   atname_sc(cnt)=atname(i)
-!   write(22,4) atname_sc(cnt),pos_sc(:,cnt) !,x,y,z,rr
+   mass_sc(cnt)=mass(k)
+   charge_sc(cnt)=charge(k)
+   atname_sc(cnt)=atname(j)
+   write(ulog,4) atname_sc(cnt),pos_sc(:,cnt),charge_sc(cnt)  !,x,y,z,rr
 
 enddo
 enddo
 enddo
 enddo
+
+if(i.ne.n_sc) then
+  write(ulog,*)'ERROR in supercell generation, n_sc,i=',n_sc,i
+  stop
+endif
 
    enddo
 enddo
 
-
-if(k.ne.n_sc) then
-  write(ulog,*)'ERROR in supercell generation, n_sc,k=',n_sc,k
-  stop
-endif
 
 ! find the shortest bond length and store in req
 req=1000000
@@ -482,7 +496,7 @@ integer i,j,al,be,del,it_num,rot_num,it_max
 
  it_max=100
  cnst=521.11  ! to convert sqrt(eV/Ang^2) to 1/cm
- rcut=req*1.1 !2.7 !0.9 * vol0**0.333
+ rcut=req*2.0 !2.7 !0.9 * vol0**0.333
  write(ulog,*)'RCUT=',rcut
 
 fc=0
@@ -501,10 +515,10 @@ do j=i+1,natom
    rp=x*rsc1+y*rsc2+z*rsc3 ! this has the shortest distance between i&j
    rij=sqrt(dot_product(rp,rp))
 
-   v2=(d2v(rij)-d1v(rij)/rij)
-   v1=(d1v(rij)/rij)
-
    if(rij.lt.rcut) then
+     rij0=rij
+     v2=(d2v(rij)-d1v(rij)/rij)
+     v1=(d1v(rij)/rij)
      write(*,19)i,j,rij,v1,v2
      do al=1,3
      do be=1,3
