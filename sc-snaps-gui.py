@@ -1094,12 +1094,12 @@ Mg O
       <div class="hint" style="margin-top:8px;">
         Line 1: conventional cell a b c α β γ<br>
         Line 2: primitive vectors (in terms of conventional)<br>
-        Line 3: lattice parameter scale (Å), 0 for conventional reduced units, otherwise primitive units <br>
+        Line 3: lattice parameter scale (Å), 0 for conventional units, otherwise primitive units<br>
         Line 4: number of atom types<br>
         Line 5: number of atoms of each type<br>
         Line 6: atomic masses; charges <br>
         Line 7: element names<br>
-        Lines 8+: reduced coordinates (conventional lattice if 0, primitive otherwise)
+        Lines 8+: reduced coordinates (conventional lattice if 0 on Line 3, primitive otherwise)
       </div>
     </div>
 
