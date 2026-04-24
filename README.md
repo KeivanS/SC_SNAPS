@@ -16,7 +16,7 @@ phonon calculations. This GUI lets you:
 - Run `sc_snaps.x` and watch the live output stream
 - Browse generated `poscar_*` files and the snapshots.xyz file
 - Click on any generated poscar or snapshots.xyz to visualize the generated structures using Jmol — all with one click
-- Vesta or similar visyualization softwares are also possible; 
+- Vesta or similar visualization softwares are also possible; 
   just replace the jmol path in the configuration section
 
 ---
