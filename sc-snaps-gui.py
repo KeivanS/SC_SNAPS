@@ -32,7 +32,7 @@ DEFAULT_CELL = """\
 1 1 1   90 90 90
  0 0.5 0.5, 0.5 0 0.5, 0.5 0.5 0
 4.247
-2
+2 9  # of atoms types, 0 for conventional reduced units
 1 1
 24.31  16.00
 Mg O
@@ -1084,8 +1084,8 @@ textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(
       <div class="card-title">cell.inp — primitive cell</div>
       <textarea id="cell" rows="12" spellcheck="false">1 1 1   90 90 90
  0 0.5 0.5, 0.5 0 0.5, 0.5 0.5 0
-4.247
-2
+4.247  9
+2  
 1 1
 24.31  16.00
 Mg O
@@ -1094,12 +1094,12 @@ Mg O
       <div class="hint" style="margin-top:8px;">
         Line 1: conventional cell a b c α β γ<br>
         Line 2: primitive vectors (in terms of conventional)<br>
-        Line 3: lattice parameter scale (Å)<br>
+        Line 3: lattice parameter scale (Å), 0 for conventional reduced units, otherwise primitive units <br>
         Line 4: number of atom types<br>
         Line 5: number of atoms of each type<br>
         Line 6: atomic masses; charges <br>
         Line 7: element names<br>
-        Lines 8+: reduced coordinates (conventional lattice)
+        Lines 8+: reduced coordinates (conventional lattice if 0, primitive otherwise)
       </div>
     </div>
 
