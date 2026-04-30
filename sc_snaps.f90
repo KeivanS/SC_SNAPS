@@ -362,12 +362,14 @@ write(ulog,4) 'rsc3=',rsc3
 ! first calculate the cell volumes
  call cross_product(r02,r03 ,r23)
  vol0  =abs(dot_product(r01 ,r23))
+ write(ulog,*)'Volume of primitive cell=',vol0
  if(vol0.eq.0) then
     write(ulog,*)'READ_SUPERCELL ERROR: vol0=0; change your primitive cell!'
     stop
  endif
  call cross_product(rsc2,rsc3,r23)
  vol_sc=abs(dot_product(rsc1,r23))
+ write(ulog,*)'Volume of super cell=',vol_sc
  if(vol_sc.eq.0) then
     write(ulog,*)'READ_SUPERCELL ERROR: vol_sc=0; change your supercell!'
     stop
