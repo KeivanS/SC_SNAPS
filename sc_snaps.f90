@@ -195,6 +195,7 @@ use ios
 use pairpot
 implicit none
 real(8) n1(3),n2(3),n3(3),latp(6),ms(10),ch(10),scal,pi !, dcosd,dsind
+real(8) aa,bb,cc,al,be,ga
 integer i,j,k,ier
 
 pi=4d0*datan(1d0)
@@ -233,6 +234,16 @@ write(ulog,4) 'r03=',r03
  prim_to_cart0(:,2) = r02
  prim_to_cart0(:,3) = r03
 
+ aa=sqrt(dot_product(r01,r01))
+ bb=sqrt(dot_product(r02,r02))
+ cc=sqrt(dot_product(r03,r03))
+ al=acos(dot_product(r02,r03)/bb/cc)
+ be=acos(dot_product(r03,r01)/cc/aa)
+ ga=acos(dot_product(r01,r02)/aa/bb)
+ write(ulog,*)' For the primitive cell============= '
+ write(ulog,4)'a ,b ,c =',aa,bb,cc
+ write(ulog,4)'al,bb,ga=',al,be,ga
+ 
  call xmatinv(3,prim_to_cart0,cart_to_prim0,ier)
 
  g01= cart_to_prim0(1,:)
