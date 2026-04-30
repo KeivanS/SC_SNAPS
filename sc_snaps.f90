@@ -237,9 +237,9 @@ write(ulog,4) 'r03=',r03
  aa=sqrt(dot_product(r01,r01))
  bb=sqrt(dot_product(r02,r02))
  cc=sqrt(dot_product(r03,r03))
- al=acos(dot_product(r02,r03)/bb/cc)
- be=acos(dot_product(r03,r01)/cc/aa)
- ga=acos(dot_product(r01,r02)/aa/bb)
+ al=acos(dot_product(r02,r03)/bb/cc)*180/pi
+ be=acos(dot_product(r03,r01)/cc/aa)*180/pi
+ ga=acos(dot_product(r01,r02)/aa/bb)*180/pi
  write(ulog,*)' For the primitive cell============= '
  write(ulog,4)'a ,b ,c =',aa,bb,cc
  write(ulog,4)'al,bb,ga=',al,be,ga
