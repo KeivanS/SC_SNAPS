@@ -3,6 +3,9 @@
 PYTHON ?= python3
 BINDIR ?= $(HOME)/BIN
 
+# bare "make" starts the GUI and opens it in the browser
+.DEFAULT_GOAL := run
+
 .PHONY: run compile clean help
 
 run:
@@ -21,6 +24,7 @@ clean:
 	@echo "Clean."
 
 help:
+	@echo "make         — same as 'make run' (default target)"
 	@echo "make compile — compile sc_snaps.f90 and move sc_snaps.x to $(BINDIR)"
 	@echo "make run     — start SC-Snaps GUI on http://localhost:5050"
 	@echo "make clean   — remove .pyc / __pycache__"
