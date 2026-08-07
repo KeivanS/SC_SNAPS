@@ -12,7 +12,7 @@ compile:
 	@mkdir -p "$(BINDIR)"
 	gfortran -O2 -o sc_snaps.x sc_snaps.f90
 	mv -f sc_snaps.x "$(BINDIR)/sc_snaps.x"
-	mv -f poscar2xyz.py "$(BINDIR)/iposcar2xyz.py"
+	cp -f poscar2xyz.py "$(BINDIR)/poscar2xyz.py"
 	@echo "Compiled and moved sc_snaps.x to $(BINDIR)/sc_snaps.x"
 
 clean:
