@@ -24,7 +24,15 @@ lsof -ti :5050 | xargs kill -9   # port is hardcoded; free it before restarting
 
 Deps: Flask (required for the GUI), numpy + matplotlib + scipy (only for the
 plot panels — imported lazily, so the GUI runs without them and the plot
-endpoints return `{"error": "Missing library..."}` with HTTP 500). Jmol optional.
+endpoints return `{"error": "Missing library..."}` with HTTP 500). `scipy.stats`
+is used for the Gaussian fits in the component and velocity histograms, so it is
+genuinely needed, not just named in the error string. Jmol optional.
+
+The user's `python3` is Homebrew 3.14 and is `EXTERNALLY-MANAGED` (PEP 668):
+`pip install` into it is refused. `make venv` creates `.venv` with
+`--system-site-packages` (brew already provides numpy and matplotlib as the
+`numpy` and `python-matplotlib` formulae) and installs the rest. The Makefile
+then picks `.venv/bin/python` up automatically via a `wildcard` test.
 
 **Do not add `-fcheck=all`.** It implies `-fcheck=recursion`, and `findif` does
 recurse (`d2v` → `findif` → `d1v` → `findif`), so the program aborts at run time

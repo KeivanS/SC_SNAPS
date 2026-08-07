@@ -26,23 +26,32 @@ phonon calculations. This GUI lets you:
 | Requirement | Notes |
 |-------------|-------|
 | Python ≥ 3.8 | |
-| [Flask](https://flask.palletsprojects.com/) | `pip install flask` |
-| [gfortran](https://gcc.gnu.org/fortran/) | or similar fortran compiler to compile sc_snaps.f90 and create`sc_snaps.x` , the snapshot generator executable |
-| [Jmol](https://jmol.sourceforge.net/) | Structure visualizer (optional) |
-
-```bash
-pip install flask
-```
+| [Flask](https://flask.palletsprojects.com/) | required to start the GUI |
+| NumPy, Matplotlib, SciPy | only for the analysis plots; without them the GUI still runs and the plot panels report the missing package |
+| [gfortran](https://gcc.gnu.org/fortran/) | or a similar Fortran compiler, to build `sc_snaps.x` from `sc_snaps.f90` |
+| [Jmol](https://jmol.sourceforge.net/) | structure visualizer (optional) |
 
 ---
 
 ## Installation & first-time setup
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/sc-snaps-gui.git
-cd sc-snaps-gui
-make compile        # to compile the sc_snaps.f90 source file
+git clone https://github.com/KeivanS/SC_SNAPS.git
+cd SC_SNAPS
+make venv           # one-time: create .venv and install the Python packages
+make compile        # compile sc_snaps.f90 -> $BINDIR/sc_snaps.x  (default ~/BIN)
 ```
+
+`make venv` creates a local virtual environment with `--system-site-packages`,
+so any NumPy/Matplotlib you already have is reused and only the missing packages
+are downloaded. Once `.venv` exists the Makefile uses it automatically; nothing
+needs to be activated.
+
+You need the virtual environment on any Python marked *externally managed*
+(PEP 668) — Homebrew's and most Linux distributions' — where `pip install flask`
+is refused with `error: externally-managed-environment`. If your Python is not
+externally managed you can skip `make venv` and simply
+`pip install flask numpy matplotlib scipy`.
 
 ## To open the GUI in the browser window
 
@@ -58,7 +67,7 @@ lsof -ti :5050 | xargs kill -9  # to kill the GUI browser window in case you wan
 
 
 ```makefile
-PYTHON     = python3
+PYTHON     = .venv/bin/python   # or python3 when there is no .venv
 SC_SNAPS_X = ~/BIN/sc_snaps.x
 # VISUALIZER = ~/BIN/jmol           # Jmol shell script or .app bundle
 # POSCAR2XYZ = ~/BIN/poscar2xyz.py  # POSCAR → XYZ converter (is provided; if you move it to ~/BIN, provide the path)
