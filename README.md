@@ -84,7 +84,7 @@ They can be overridden at any time in the browser without restarting.
 ```
 1 1 1   90 90 90          # conventional cell: a b c  α β γ
  0 0.5 0.5, 0.5 0 0.5, 0.5 0.5 0   # primitive vectors (in conventional units)
-4.247  9                  # lattice parameter scale (Å), 0 for conventional cell units , otherwise coordinates are read in primitive cell units
+4.247  9                  # lattice parameter scale (Å), 0 for coordinates in conventional cell units, otherwise coordinates are read in primitive cell units
 2                         # number of atom types
 1 1                       # number of atoms of each type
 24.31  16.00              # atomic masses
@@ -92,6 +92,8 @@ Mg O                      # element names
   0 0 0                   # reduced coordinates (conventional lattice if 0 on line 3, otherwise primitive)
   0.5 0.5 0.5
 ```
+
+NOTE: if you want to directly input the primitive cell information, use 1 1 1 90 90 90 on the first line and use the second line for the cartesian units of the primitive cell AND  on the thrid line use scale (=1) followed by a non-zero number like 9
 
 ### `snaps.inp` — snapshot parameters
 ```
@@ -107,7 +109,7 @@ Mg O                      # element names
 0 0 3
 ```
 3×3 integer matrix: supercell vectors in terms of the primitive cell vectors.
-A diagonal matrix gives an n×n×n supercell.
+A diagonal matrix gives an n×n×n supercell, but you can also use non-diagonal elements.
 
 ---
 
