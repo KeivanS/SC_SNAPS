@@ -101,7 +101,7 @@ NOTE: if you want to directly input the primitive cell information, use 1 1 1 90
 30     # temperature (K) 
 51     # number of snapshots  supercell_type 
 ```
-T=30K is a reasonable value for temperature. Check the displacements distribution in the GUI to make sure it is what you want.
+T=30K is a reasonable value for temperature. Check the displacements (modes.dat) distribution in the GUI to make sure it is what you want.
 
 ### `supercell.inp` — supercell dimensions
 ```
